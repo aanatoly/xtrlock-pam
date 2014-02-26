@@ -86,10 +86,11 @@ create_window_full(int mode)
         return window;
     }
     if (mode == MBG) {
+#if 0
         Atom asd_id = XInternAtom(display, "_NET_SHOWING_DESKTOP", False);
         Atom aws_id = XInternAtom(display, "_NET_WM_STATE", False);
         Atom awsa_id = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
-        
+#endif   
         values |= CWBackPixmap;
         attrib.background_pixmap = ParentRelative;
         window = create_window(values, &attrib);

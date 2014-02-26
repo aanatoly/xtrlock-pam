@@ -11,7 +11,7 @@
    - **blank** blank the screen, hide desktop content
    - **none** do not hide anything, as former xtrlock did
    - **bg** hide windows, show just root window background. This work if root
-     window has one. Run `xprop -root | grep PMAP` to check
+     window has one.
      
 ## Usage
 Run **xtrlock** to lock, and type your password to unlock.
