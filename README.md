@@ -14,6 +14,8 @@
      window has one. Run `xprop -root | grep PMAP` to check
      
 ## Usage
+Run **xtrlock** to lock, and type your password to unlock.
+
 Default behaviour
 ```bash
 xtrlock_pam
