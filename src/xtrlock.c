@@ -35,14 +35,16 @@
 #include "lock.bitmap"
 #include "mask.bitmap"
 
-Display *display;
-Window window, root;
-
 #define TIMEOUTPERATTEMPT 30000
 #define MAXGOODWILL  (TIMEOUTPERATTEMPT*5)
 #define INITIALGOODWILL MAXGOODWILL
 #define GOODWILLPORTION 0.3
 enum { MNONE, MBG, MBLANK };
+
+Display *display;
+Window root;
+int screen;
+Colormap cmap;
 
 int bg_action = MBLANK;
 char *pam_module = "system-local-login";
@@ -54,116 +56,120 @@ int passwordok(char *password)
     return auth_pam(getenv("USER"), password, pam_module);
 }
 
-void
-lock(int mode)
+
+Window
+create_window(unsigned long values, XSetWindowAttributes *attrib)
 {
-    XEvent ev;
-    KeySym ks;
-    char cbuf[10], rbuf[128];
-    int clen, rlen=0;
-    long goodwill= INITIALGOODWILL, timeout= 0;
+    return XCreateWindow(display, root,
+        0, 0,
+        DisplayWidth(display, screen),
+        DisplayHeight(display, screen),
+        0, CopyFromParent, CopyFromParent, CopyFromParent,
+        values, attrib);
+}
+
+/* If window creation fails, Xlib will exit an application */
+Window
+create_window_full(int mode)
+{
     XSetWindowAttributes attrib;
-    unsigned long values;
-    Cursor cursor;
+    unsigned long values = 0;
+    Window window;
+
+    values = CWOverrideRedirect;
+    attrib.override_redirect = True;
+
+    if (mode == MNONE) {
+        window = XCreateWindow(display, root, 0, 0, 1, 1, 0,
+            CopyFromParent, InputOnly, CopyFromParent, values, &attrib);
+        XSync(display, False);
+        return window;
+    }
+    if (mode == MBG) {
+        values |= CWBackPixmap;
+        attrib.background_pixmap = ParentRelative;
+        window = create_window(values, &attrib);
+    } else if (mode == MBLANK) {
+        values |= CWBackPixel;
+        attrib.background_pixel = BlackPixel(display, screen);
+        window = create_window(values, &attrib);
+    } else
+        exit(1);
+    XClearWindow(display, window);
+    XSync(display, False);
+    return window;
+}
+
+Cursor
+create_cursor(Window window)
+{
     Pixmap csr_source,csr_mask;
     XColor csr_fg, csr_bg, dummy;
-    int ret;
-
-    display = XOpenDisplay(0);
-    if (display == NULL)
-    {
-        fprintf(stderr,"xtrlock (version %s): cannot open display\n",
-	    PROJECT_VERSION);
-        exit(1);
-    }
-
-    attrib.override_redirect= True;
-    values = CWOverrideRedirect;
-    if (mode == MNONE)
-    {
-        window= XCreateWindow(display,DefaultRootWindow(display),
-            0,0,1,1,0,CopyFromParent,InputOnly,CopyFromParent,
-            values,&attrib);
-    }
-    else
-    {
-        int screen;
-
-        screen = DefaultScreen(display);
-
-        if (mode == MBG)
-        {
-            attrib.background_pixmap = ParentRelative;
-            values |= CWBackPixmap;            
-        } else {
-            attrib.background_pixel = BlackPixel(display, screen);
-            values |= CWBackPixel;
-        }
-        window = XCreateWindow(display,DefaultRootWindow(display),
-            0, 0, DisplayWidth(display, screen),
-            DisplayHeight(display, screen), 0, 
-            CopyFromParent, CopyFromParent, CopyFromParent, values, &attrib);
-        XClearWindow(display, window);
-        XSync(display, False);
-    }
-    XSelectInput(display,window,KeyPressMask|KeyReleaseMask);
 
     csr_source = XCreateBitmapFromData(display, window, lock_bits,
         lock_width, lock_height);
     csr_mask = XCreateBitmapFromData(display, window, mask_bits, mask_width,
         mask_height);
 
-    ret = XAllocNamedColor(display,
-        DefaultColormap(display, DefaultScreen(display)),
-        "steelblue3",
-        &dummy, &csr_bg);
-    if (ret == 0)
-        XAllocNamedColor(display,
-            DefaultColormap(display, DefaultScreen(display)),
-            "black",
-            &dummy, &csr_bg);
+    if (!XAllocNamedColor(display, cmap, "steelblue3", &dummy, &csr_bg))
+        XAllocNamedColor(display, cmap, "black", &dummy, &csr_bg);
+    if (!XAllocNamedColor(display, cmap, "grey25", &dummy, &csr_fg))
+        XAllocNamedColor(display, cmap, "white", &dummy, &csr_fg);
+    return XCreatePixmapCursor(display, csr_source, csr_mask,
+        &csr_fg, &csr_bg, lock_x_hot, lock_y_hot);
+}
 
-    ret = XAllocNamedColor(display,
-        DefaultColormap(display,DefaultScreen(display)),
-        "grey25",
-        &dummy, &csr_fg);
-    if (ret == 0)
-        XAllocNamedColor(display,
-            DefaultColormap(display, DefaultScreen(display)),
-            "white",
-            &dummy, &csr_bg);
+void
+lock(int mode)
+{
+    XEvent ev;
+    KeySym ks;
+    char cbuf[10], rbuf[128];
+    int clen, rlen=0, ret;
+    long goodwill= INITIALGOODWILL, timeout= 0;
+    Cursor cursor;
+  
+    Window window;
 
-    cursor= XCreatePixmapCursor(display,csr_source,csr_mask,&csr_fg,&csr_bg,
-        lock_x_hot,lock_y_hot);
+    //XSetErrorHandler((XErrorHandler) handle_error);
+    display = XOpenDisplay(0);
+    if (display == NULL) {
+        fprintf(stderr,"cannot open display\n");
+        exit(1);
+    }
+    screen = DefaultScreen(display);
+    root = DefaultRootWindow(display);
+    cmap = DefaultColormap(display, screen);
+    window = create_window_full(mode);
 
+    XSelectInput(display,window,KeyPressMask|KeyReleaseMask);
+
+    cursor = create_cursor(window);
     XMapWindow(display,window);
-    if (XGrabKeyboard(display,window,False,GrabModeAsync,GrabModeAsync,
-            CurrentTime)!=GrabSuccess)
+    if (XGrabKeyboard(display, window, False, GrabModeAsync, GrabModeAsync,
+            CurrentTime) != GrabSuccess)
     {
         exit(1);
     }
-    if (XGrabPointer(display,window,False,(KeyPressMask|KeyReleaseMask)&0,
-            GrabModeAsync,GrabModeAsync,None,
-            cursor,CurrentTime)!=GrabSuccess)
+    if (XGrabPointer(display, window, False,
+            0,//(KeyPressMask|KeyReleaseMask)&0,
+            GrabModeAsync, GrabModeAsync, None,
+            cursor, CurrentTime) != GrabSuccess)
     {
-        XUngrabKeyboard(display,CurrentTime);
+        XUngrabKeyboard(display, CurrentTime);
         exit(1);
     }
 
-    for (;;)
-    {
+    for (;;) {
         XNextEvent(display,&ev);
-        switch (ev.type)
-        {
+        switch (ev.type) {
         case KeyPress:
-            if (ev.xkey.time < timeout)
-            {
+            if (ev.xkey.time < timeout) {
                 XBell(display,0);
                 break;
             }
             clen= XLookupString(&ev.xkey,cbuf,9,&ks,0);
-            switch (ks)
-            {
+            switch (ks) {
             case XK_Escape: case XK_Clear:
                 rlen=0; break;
             case XK_Delete: case XK_BackSpace:
@@ -178,13 +184,10 @@ lock(int mode)
                     goto loop_x;
                 XBell(display,0);
                 rlen= 0;
-                if (timeout)
-                {
+                if (timeout) {
                     goodwill+= ev.xkey.time - timeout;
                     if (goodwill > MAXGOODWILL)
-                    {
                         goodwill= MAXGOODWILL;
-                    }
                 }
                 timeout = -goodwill*GOODWILLPORTION;
                 goodwill += timeout;
@@ -194,8 +197,7 @@ lock(int mode)
                 if (clen != 1)
                     break;
                 /* allow space for the trailing \0 */
-                if (rlen < (sizeof(rbuf) - 1))
-                {
+                if (rlen < (sizeof(rbuf) - 1)) {
                     rbuf[rlen]=cbuf[0];
                     rlen++;
                 }
@@ -248,7 +250,7 @@ int main(int argc, char *argv[])
                 exit(1);
             }
             break;
-            
+
         default:
             exit(1);
         }
