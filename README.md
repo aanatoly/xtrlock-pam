@@ -31,3 +31,6 @@ Try this!
 ```bash
 xtrlock_pam -b bg
 ```
+
+### More
+Project page http://aanatoly.github.io/xtrlock-pam
