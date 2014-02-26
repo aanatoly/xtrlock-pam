@@ -237,7 +237,7 @@ help()
     printf("Usage: xtrlock [options...]\n");
     printf("Options:\n");
     printf(" -h      This help message\n");
-    printf(" -m MOD  PAM module, default is system-local-login\n");
+    printf(" -p MOD  PAM module, default is system-local-login\n");
     printf(" -b BG   background action, none or blank, default is blank\n");
 }
 
@@ -245,13 +245,13 @@ int main(int argc, char *argv[])
 {
     int opt;
 
-    while ((opt = getopt(argc, argv, "b:m:h")) != -1) {
+    while ((opt = getopt(argc, argv, "b:p:h")) != -1) {
         switch (opt) {
         case 'h':
             help();
             exit(0);
 
-        case 'm':
+        case 'p':
             pam_module = optarg;
             break;
 
