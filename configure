@@ -41,7 +41,7 @@ class SmartHelpFmt(argparse.RawDescriptionHelpFormatter):
 
     def _format_usage(self, usage, actions, groups, prefix):
         for g in groups:
-            print g
+            print(g)
         text = super(SmartHelpFmt, self)._format_usage(usage,
             actions, groups, prefix)
         # print "Usage", text
@@ -200,6 +200,7 @@ def my_check_output(*popenargs, **kwargs):
     process = sp.Popen(stdout=sp.PIPE, *popenargs, **kwargs)
     output, unused_err = process.communicate()
     retcode = process.poll()
+    output = output.decode("utf-8").strip()
     if retcode:
         raise sp.CalledProcessError(retcode, cmd, output=output)
     return output
@@ -272,11 +273,11 @@ def opt_new_from_pkg(vname, pname, pvars = [], pversion = "", required = True):
     cmd = ['pkg-config', '--print-errors', pname]
     try:
         my_check_output(cmd + pversion.split(), stderr=sp.STDOUT)
-    except sp.CalledProcessError, e:
+    except sp.CalledProcessError as e:
         if required:
-            print e.output
-            print "This usually means that '" + pname + \
-                "' development files are not installed"
+            print(e.output)
+            print("This usually means that '" + pname + \
+                "' development files are not installed")
             exit(1)
         else:
             return
@@ -329,14 +330,14 @@ def write_config():
             v = int(v)
 
         smake += "%s := %s\n" % (name.upper(), str(v))
-        if type(v) == str:
+        if type(v) == str or type(v) == unicode:
             v = '"' + v + '"'
         sc += '#define %s  %s\n' % (name.upper(), str(v))
     smake += "\n"
     sc += "\n"
-    print 'Created config.mk'
+    print('Created config.mk')
     open('config.mk', 'w').write(smake)
-    print 'Created config.h'
+    print('Created config.h')
     open('config.h', 'w').write(sc)
   
 
@@ -346,7 +347,7 @@ def write_repl():
         s += "    '%s' : '%s',\n" % (name, str(opt(name)))
     s = re.sub('#repl_dict#', s, open('.config/repl.py', 'r').read())
     open('repl.py', 'w').write(s)
-    os.chmod('repl.py', 0755)
+    os.chmod('repl.py', 0o755)
     
     
 def init():
@@ -355,6 +356,8 @@ def init():
 def resolve():
     pass
 
+def report():
+    pass
 
 ##########################################################
 ###   Self Install                                     ###
@@ -384,7 +387,7 @@ def mc_makefiles():
             return False
         try:
             h = open(os.path.join(dirname, 'Makefile'), 'r').readline()
-        except BaseException, e:
+        except BaseException as e:
             x.debug("yes - no read - %s", e)
             return True
         m = re.match(header_re, h)
@@ -438,11 +441,11 @@ def mc_makefiles():
         open(path, 'w').write(text)
 
 
-    print "\nNow, you can test it. Run the commands:"
-    print "./configure --help"
-    print "./configure"
-    print "make help"
-    print "make V=1"
+    print( "\nNow, you can test it. Run the commands:" )
+    print( "./configure --help" )
+    print( "./configure" )
+    print( "make help" )
+    print( "make V=1" )
 
 
 ##########################################################
@@ -490,7 +493,9 @@ def main():
 
 if __name__ == "__main__":
     try:
-        execfile('.config/options.py')
+        name = '.config/options.py'
+        code = compile(open(name, "r").read(), name, 'exec')
+        exec(code)
     except:
         x.info("Can't read .config/options.py")
         pass
