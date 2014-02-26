@@ -1,0 +1,5 @@
+xtrlock.o
+xtrlock.d
+auth_pam.o
+auth_pam.d
+xtrlock_pam
