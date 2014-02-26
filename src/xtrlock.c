@@ -86,6 +86,10 @@ create_window_full(int mode)
         return window;
     }
     if (mode == MBG) {
+        Atom asd_id = XInternAtom(display, "_NET_SHOWING_DESKTOP", False);
+        Atom aws_id = XInternAtom(display, "_NET_WM_STATE", False);
+        Atom awsa_id = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
+        
         values |= CWBackPixmap;
         attrib.background_pixmap = ParentRelative;
         window = create_window(values, &attrib);
@@ -146,6 +150,9 @@ lock(int mode)
 
     cursor = create_cursor(window);
     XMapWindow(display,window);
+    XRaiseWindow(display,window);
+    XClearWindow(display, window);
+    XSync(display, False);
     if (XGrabKeyboard(display, window, False, GrabModeAsync, GrabModeAsync,
             CurrentTime) != GrabSuccess)
     {
