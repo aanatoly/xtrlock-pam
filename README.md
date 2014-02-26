@@ -1,4 +1,4 @@
 xtrlock-pam
 ===========
 
-xtrlock with PAM authentication that also hide all windows
+xtrlock with PAM authentication that also hides all windows
