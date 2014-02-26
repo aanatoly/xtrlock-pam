@@ -8,7 +8,7 @@
    - use any PAM module you like
    - run by regular user, no root setuid is ever required
  - Background actions
-   - **blank** blanks the screen, hides desktop content
+   - **blank** blank the screen, hide desktop content
    - **none** do nothing, as former xtrlock did
 
 ## Usage
