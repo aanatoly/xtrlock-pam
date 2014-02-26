@@ -85,7 +85,7 @@ pam_error:
 
 
 int
-auth_pam(char *user, char *password)
+auth_pam(char *user, char *password, char *module)
 {
     int pam_error = 0;
     struct pam_conv pc = { conv, NULL };
@@ -95,7 +95,7 @@ auth_pam(char *user, char *password)
     luser = user;
     lpassword = password;
     pc.conv = conv;
-    PAM_RUN(pam_start, ("system-local-login", NULL, &pc, &pamh));
+    PAM_RUN(pam_start, (module, NULL, &pc, &pamh));
     PAM_RUN(pam_set_item, (pamh, PAM_USER, user));
     PAM_RUN(pam_set_item, (pamh, PAM_TTY, ":0"));
     PAM_RUN(pam_authenticate, (pamh, PAM_DISALLOW_NULL_AUTHTOK));

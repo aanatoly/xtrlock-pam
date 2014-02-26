@@ -30,14 +30,6 @@
 #include <math.h>
 #include <ctype.h>
 
-#include <security/pam_appl.h>
-#include <security/pam_misc.h>
-
-static struct pam_conv conv = {
-    misc_conv,
-    NULL
-};
-
 #include "config.h"
 
 #include "lock.bitmap"
@@ -52,11 +44,14 @@ Window window, root;
 #define GOODWILLPORTION 0.3
 enum { MNONE, MBG, MBLANK };
 
-char *pam_domain = "system-local-login";
+int bg_action = MBLANK;
+char *pam_module = "system-local-login";
+
+int auth_pam(char *user, char *password, char *module);
 
 int passwordok(char *password)
 {
-    return auth_pam(getenv("USER"), password);
+    return auth_pam(getenv("USER"), password, pam_module);
 }
 
 void
@@ -234,18 +229,47 @@ loop_x:
     exit(0);
 }
 
+void
+help()
+{
+    printf("%s %s - PAM based X11 screen locker\n",
+        PROJECT_NAME, PROJECT_VERSION);
+    printf("Usage: xtrlock [options...]\n");
+    printf("Options:\n");
+    printf(" -h      This help message\n");
+    printf(" -m MOD  PAM module, default is system-local-login\n");
+    printf(" -b BG   background action, none or blank, default is blank\n");
+}
+
 int main(int argc, char *argv[])
 {
-    int mode = MBG;
-    if (argc == 2)
-    {
-        if (!strcmp(argv[1], "bg"))
-            mode = MBG;
-        else if (!strcmp(argv[1], "blank"))
-            mode = MBLANK;
-        if (!strcmp(argv[1], "none"))
-            mode = MNONE;
+    int opt;
+
+    while ((opt = getopt(argc, argv, "b:m:h")) != -1) {
+        switch (opt) {
+        case 'h':
+            help();
+            exit(0);
+
+        case 'm':
+            pam_module = optarg;
+            break;
+
+        case 'b':
+            if (!strcmp(optarg, "none"))
+                bg_action = MNONE;
+            else if (!strcmp(optarg, "blank"))
+                bg_action = MBLANK;
+            else {
+                fprintf(stderr, "unknown bg action '%s'\n", optarg);
+                exit(1);
+            }
+            break;
+            
+        default:
+            exit(1);
+        }
     }
-    lock(mode);
+    lock(bg_action);
     return 0;
 }

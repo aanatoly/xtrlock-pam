@@ -155,7 +155,7 @@ endif
 endif
 
 ifeq ($(origin CFLAGS),undefined)
-CFLAGS = -O2
+CFLAGS = -O2 -Wall
 endif
 ifneq ($(origin DEBUG),undefined)
 override CFLAGS += -g
