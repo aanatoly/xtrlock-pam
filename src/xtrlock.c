@@ -40,6 +40,7 @@
 #define INITIALGOODWILL MAXGOODWILL
 #define GOODWILLPORTION 0.3
 enum { MNONE, MBG, MBLANK };
+enum { CSR_FG, CSR_BG, CSR_BGACT };
 
 Display *display;
 Window root;
@@ -106,22 +107,24 @@ create_window_full(int mode)
 }
 
 Cursor
-create_cursor(Window window)
+create_cursor(XColor *col, Window window)
 {
     Pixmap csr_source,csr_mask;
-    XColor csr_fg, csr_bg, dummy;
+    XColor dummy;
 
     csr_source = XCreateBitmapFromData(display, window, lock_bits,
         lock_width, lock_height);
     csr_mask = XCreateBitmapFromData(display, window, mask_bits, mask_width,
         mask_height);
 
-    if (!XAllocNamedColor(display, cmap, "steelblue3", &dummy, &csr_bg))
-        XAllocNamedColor(display, cmap, "black", &dummy, &csr_bg);
-    if (!XAllocNamedColor(display, cmap, "grey25", &dummy, &csr_fg))
-        XAllocNamedColor(display, cmap, "white", &dummy, &csr_fg);
+    if (!XAllocNamedColor(display, cmap, "steelblue3", &dummy, &col[CSR_BG]))
+        XAllocNamedColor(display, cmap, "black", &dummy, &col[CSR_BG]);
+    if (!XAllocNamedColor(display, cmap, "grey25", &dummy, &col[CSR_FG]))
+        XAllocNamedColor(display, cmap, "white", &dummy, &col[CSR_FG]);
+    if (!XAllocNamedColor(display, cmap, "cadetblue3", &dummy, &col[CSR_BGACT]))
+        col[CSR_BGACT] = col[CSR_FG];
     return XCreatePixmapCursor(display, csr_source, csr_mask,
-        &csr_fg, &csr_bg, lock_x_hot, lock_y_hot);
+        &col[CSR_FG], &col[CSR_BG], lock_x_hot, lock_y_hot);
 }
 
 void
@@ -129,8 +132,9 @@ lock(int mode)
 {
     XEvent ev;
     KeySym ks;
+    XColor col[3];
     char cbuf[10], rbuf[128];
-    int clen, rlen=0, ret;
+    int clen, rlen=0, state = 0;
     long goodwill= INITIALGOODWILL, timeout= 0;
     Cursor cursor;
   
@@ -149,7 +153,7 @@ lock(int mode)
 
     XSelectInput(display,window,KeyPressMask|KeyReleaseMask);
 
-    cursor = create_cursor(window);
+    cursor = create_cursor(col, window);
     XMapWindow(display,window);
     XRaiseWindow(display,window);
     XClearWindow(display, window);
@@ -169,6 +173,10 @@ lock(int mode)
     }
 
     for (;;) {
+        if (state != (rlen ? 1 : 0)) {
+            state = rlen ? 1 : 0;
+            XRecolorCursor(display, cursor, &col[CSR_FG], &col[CSR_BG+state]);
+        }
         XNextEvent(display,&ev);
         switch (ev.type) {
         case KeyPress:
