@@ -93,29 +93,9 @@ lock(int mode)
 
         if (mode == MBG)
         {
-            Atom a_XROOTPMAP_ID;
-            Atom ret_type;
-            int  act_format;
-            unsigned long  nitems, bytes_after ;
-            unsigned char *prop = NULL;
-
-            a_XROOTPMAP_ID = XInternAtom(display, "_XROOTPMAP_ID", True);
-            if (XGetWindowProperty(display, DefaultRootWindow(display),
-                    a_XROOTPMAP_ID, 0, 1, False, XA_PIXMAP,
-                    &ret_type, &act_format, &nitems, &bytes_after, &prop)
-                == Success)
-            {
-              
-                if (ret_type == XA_PIXMAP)
-                {
-                    attrib.background_pixmap = *((Pixmap *)prop); 
-                    values |= CWBackPixmap;            
-                }
-                XFree(prop);           
-            } 
-        }
-        if (!(values & CWBackPixmap))
-        {
+            attrib.background_pixmap = ParentRelative;
+            values |= CWBackPixmap;            
+        } else {
             attrib.background_pixel = BlackPixel(display, screen);
             values |= CWBackPixel;
         }
@@ -124,6 +104,7 @@ lock(int mode)
             DisplayHeight(display, screen), 0, 
             CopyFromParent, CopyFromParent, CopyFromParent, values, &attrib);
         XClearWindow(display, window);
+        XSync(display, False);
     }
     XSelectInput(display,window,KeyPressMask|KeyReleaseMask);
 
@@ -238,7 +219,7 @@ help()
     printf("Options:\n");
     printf(" -h      This help message\n");
     printf(" -p MOD  PAM module, default is system-local-login\n");
-    printf(" -b BG   background action, none or blank, default is blank\n");
+    printf(" -b BG   background action, none, blank or bg, default is blank\n");
 }
 
 int main(int argc, char *argv[])
@@ -260,6 +241,8 @@ int main(int argc, char *argv[])
                 bg_action = MNONE;
             else if (!strcmp(optarg, "blank"))
                 bg_action = MBLANK;
+             else if (!strcmp(optarg, "bg"))
+                bg_action = MBG;
             else {
                 fprintf(stderr, "unknown bg action '%s'\n", optarg);
                 exit(1);

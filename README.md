@@ -10,7 +10,9 @@
  - Background actions
    - **blank** blank the screen, hide desktop content
    - **none** do nothing, as former xtrlock did
-
+   - **bg** hide windows, show just root window background. This work if root
+     window has one. Run `xprop -root | grep PMAP` to check
+     
 ## Usage
 Default behaviour
 ```bash
@@ -21,4 +23,9 @@ xtrlock_pam -p system-local-login -b blank
 Another run
 ```bash
 xtrlock_pam -p login -b none
+```
+
+Try this!
+```bash
+xtrlock_pam -b bg
 ```
