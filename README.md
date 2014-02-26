@@ -9,7 +9,7 @@
    - run by regular user, no root setuid is ever required
  - Background actions
    - **blank** blank the screen, hide desktop content
-   - **none** do nothing, as former xtrlock did
+   - **none** do not hide anything, as former xtrlock did
    - **bg** hide windows, show just root window background. This work if root
      window has one. Run `xprop -root | grep PMAP` to check
      
