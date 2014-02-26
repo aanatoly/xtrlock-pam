@@ -275,6 +275,8 @@ def opt_new_from_pkg(vname, pname, pvars = [], pversion = "", required = True):
     except sp.CalledProcessError, e:
         if required:
             print e.output
+            print "This usually means that '" + pname + \
+                "' development files are not installed"
             exit(1)
         else:
             return
