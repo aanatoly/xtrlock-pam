@@ -156,7 +156,6 @@ lock(int mode)
     cursor = create_cursor(col, window);
     XMapWindow(display,window);
     XRaiseWindow(display,window);
-    XClearWindow(display, window);
     XSync(display, False);
     if (XGrabKeyboard(display, window, False, GrabModeAsync, GrabModeAsync,
             CurrentTime) != GrabSuccess)
