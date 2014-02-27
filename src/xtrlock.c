@@ -100,11 +100,6 @@ create_window_full(int mode)
         return window;
     }
     if (mode == MBG) {
-#if 0
-        Atom asd_id = XInternAtom(display, "_NET_SHOWING_DESKTOP", False);
-        Atom aws_id = XInternAtom(display, "_NET_WM_STATE", False);
-        Atom awsa_id = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
-#endif   
         values |= CWBackPixmap;
         attrib.background_pixmap = ParentRelative;
         window = create_window(values, &attrib);
@@ -133,7 +128,7 @@ create_cursors(void)
 
     if (!XAllocNamedColor(display, cmap, "white", &dummy, &def_fg)
         || !XAllocNamedColor(display, cmap, "black", &dummy, &def_bg)) {
-        fprintf(stderr, "Can't allocate basic colors: black, white\n");
+        err("Can't allocate basic colors: black, white\n");
         exit(1);
     }
      
@@ -159,7 +154,7 @@ lock(int mode)
 
     display = XOpenDisplay(0);
     if (display == NULL) {
-        fprintf(stderr,"cannot open display\n");
+        err("cannot open display\n");
         exit(1);
     }
     screen = DefaultScreen(display);
@@ -185,13 +180,10 @@ lock(int mode)
             state = AUTH_NONE;
         if (old_state != state) {
             old_state = state;
-            ret = XGrabPointer(display, window, False,
-                0, GrabModeAsync, GrabModeAsync, None,
-                cursors[state].c, CurrentTime);
-            if (ret != GrabSuccess) {
+            if (XGrabPointer(display, window, False,
+                    0, GrabModeAsync, GrabModeAsync, None,
+                    cursors[state].c, CurrentTime) != GrabSuccess)
                 err("can't grab pointer\n");
-                exit(1);
-            }
         }
 
         XNextEvent(display,&ev);
@@ -282,7 +274,7 @@ int main(int argc, char *argv[])
              else if (!strcmp(optarg, "bg"))
                 bg_action = MBG;
             else {
-                fprintf(stderr, "unknown bg action '%s'\n", optarg);
+                err("unknown bg action '%s'\n", optarg);
                 exit(1);
             }
             break;
