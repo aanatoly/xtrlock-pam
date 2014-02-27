@@ -40,7 +40,17 @@
 #define INITIALGOODWILL MAXGOODWILL
 #define GOODWILLPORTION 0.3
 enum { MNONE, MBG, MBLANK };
-enum { CSR_FG, CSR_BG, CSR_BGACT };
+
+enum { AUTH_NONE, AUTH_NOW, AUTH_FAILED, AUTH_MAX };
+
+static struct {
+    char *fg, *bg;
+    Cursor c;
+} cursors[AUTH_MAX] = {
+    [ AUTH_NONE ] = { .bg = "steelblue3", .fg = "grey25" },
+    [ AUTH_NOW ] = { .bg = "cadetblue3", .fg = "grey25" },
+    [ AUTH_FAILED ] = { .bg = "red", .fg = "grey25" },
+};
 
 Display *display;
 Window root;
@@ -56,6 +66,9 @@ int passwordok(char *password)
 {
     return auth_pam(getenv("USER"), password, pam_module);
 }
+
+#define err(fmt, args...)                       \
+    do { fprintf(stderr, fmt, ## args); } while(0)
 
 
 Window
@@ -106,25 +119,32 @@ create_window_full(int mode)
     return window;
 }
 
-Cursor
-create_cursor(XColor *col, Window window)
+static void
+create_cursors(void)
 {
     Pixmap csr_source,csr_mask;
-    XColor dummy;
-
-    csr_source = XCreateBitmapFromData(display, window, lock_bits,
+    XColor dummy, def_bg, def_fg, bg, fg;
+    int i;
+    
+    csr_source = XCreateBitmapFromData(display, root, lock_bits,
         lock_width, lock_height);
-    csr_mask = XCreateBitmapFromData(display, window, mask_bits, mask_width,
+    csr_mask = XCreateBitmapFromData(display, root, mask_bits, mask_width,
         mask_height);
 
-    if (!XAllocNamedColor(display, cmap, "steelblue3", &dummy, &col[CSR_BG]))
-        XAllocNamedColor(display, cmap, "black", &dummy, &col[CSR_BG]);
-    if (!XAllocNamedColor(display, cmap, "grey25", &dummy, &col[CSR_FG]))
-        XAllocNamedColor(display, cmap, "white", &dummy, &col[CSR_FG]);
-    if (!XAllocNamedColor(display, cmap, "cadetblue3", &dummy, &col[CSR_BGACT]))
-        col[CSR_BGACT] = col[CSR_FG];
-    return XCreatePixmapCursor(display, csr_source, csr_mask,
-        &col[CSR_FG], &col[CSR_BG], lock_x_hot, lock_y_hot);
+    if (!XAllocNamedColor(display, cmap, "white", &dummy, &def_fg)
+        || !XAllocNamedColor(display, cmap, "black", &dummy, &def_bg)) {
+        fprintf(stderr, "Can't allocate basic colors: black, white\n");
+        exit(1);
+    }
+     
+    for (i = 0; i < AUTH_MAX; i++) {
+        if (!XAllocNamedColor(display, cmap, cursors[i].fg, &dummy, &fg))
+            fg = def_fg;
+        if (!XAllocNamedColor(display, cmap, cursors[i].bg, &dummy, &bg))
+            bg = def_bg;
+        cursors[i].c = XCreatePixmapCursor(display, csr_source, csr_mask,
+            &fg, &bg, lock_x_hot, lock_y_hot);
+    }
 }
 
 void
@@ -132,15 +152,11 @@ lock(int mode)
 {
     XEvent ev;
     KeySym ks;
-    XColor col[3];
     char cbuf[10], rbuf[128];
-    int clen, rlen=0, state = 0;
+    int ret, clen, rlen=0, state = AUTH_NONE, old_state = -1;
     long goodwill= INITIALGOODWILL, timeout= 0;
-    Cursor cursor;
-  
     Window window;
 
-    //XSetErrorHandler((XErrorHandler) handle_error);
     display = XOpenDisplay(0);
     if (display == NULL) {
         fprintf(stderr,"cannot open display\n");
@@ -152,30 +168,32 @@ lock(int mode)
     window = create_window_full(mode);
 
     XSelectInput(display,window,KeyPressMask|KeyReleaseMask);
-
-    cursor = create_cursor(col, window);
+    create_cursors();
     XMapWindow(display,window);
     XRaiseWindow(display,window);
     XSync(display, False);
     if (XGrabKeyboard(display, window, False, GrabModeAsync, GrabModeAsync,
-            CurrentTime) != GrabSuccess)
-    {
+            CurrentTime) != GrabSuccess) {
+        err("can't grab keyboard\n");
         exit(1);
     }
-    if (XGrabPointer(display, window, False,
-            0,//(KeyPressMask|KeyReleaseMask)&0,
-            GrabModeAsync, GrabModeAsync, None,
-            cursor, CurrentTime) != GrabSuccess)
-    {
-        XUngrabKeyboard(display, CurrentTime);
-        exit(1);
-    }
-
+  
     for (;;) {
-        if (state != (rlen ? 1 : 0)) {
-            state = rlen ? 1 : 0;
-            XRecolorCursor(display, cursor, &col[CSR_FG], &col[CSR_BG+state]);
+        if (rlen)
+            state = AUTH_NOW;
+        else
+            state = AUTH_NONE;
+        if (old_state != state) {
+            old_state = state;
+            ret = XGrabPointer(display, window, False,
+                0, GrabModeAsync, GrabModeAsync, None,
+                cursors[state].c, CurrentTime);
+            if (ret != GrabSuccess) {
+                err("can't grab pointer\n");
+                exit(1);
+            }
         }
+
         XNextEvent(display,&ev);
         switch (ev.type) {
         case KeyPress:
@@ -195,6 +213,9 @@ lock(int mode)
                 if (rlen==0)
                     break;
                 rbuf[rlen]=0;
+                XGrabPointer(display, window, False,
+                    0, GrabModeAsync, GrabModeAsync, None,
+                    cursors[AUTH_FAILED].c, CurrentTime);
                 if (passwordok(rbuf))
                     goto loop_x;
                 XBell(display,0);
