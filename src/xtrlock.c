@@ -148,7 +148,7 @@ lock(int mode)
     XEvent ev;
     KeySym ks;
     char cbuf[10], rbuf[128];
-    int ret, clen, rlen=0, state = AUTH_NONE, old_state = -1;
+    int clen, rlen=0, state = AUTH_NONE, old_state = -1;
     long goodwill= INITIALGOODWILL, timeout= 0;
     Window window;
 
@@ -209,7 +209,7 @@ lock(int mode)
                     0, GrabModeAsync, GrabModeAsync, None,
                     cursors[AUTH_FAILED].c, CurrentTime);
                 if (passwordok(rbuf))
-                    goto loop_x;
+                    exit(0);
                 XBell(display,0);
                 rlen= 0;
                 if (timeout) {
@@ -236,8 +236,6 @@ lock(int mode)
             break;
         }
     }
-loop_x:
-    exit(0);
 }
 
 void
