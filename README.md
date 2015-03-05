@@ -21,9 +21,9 @@ Run **xtrlock_pam** to lock, and type your password to unlock.
 
 
 ```text
-$ xtrlock_pam -h
+$ xtrlock-pam -h
 xtrlock-pam 3.3 - PAM based X11 screen locker
-Usage: xtrlock [options...]
+Usage: xtrlock-pam [options...]
 Options:
  -h      This help message
  -p MOD  PAM module, default is 'system-local-login'
@@ -33,8 +33,8 @@ Options:
 
 Default is
 ```
-$ xtrlock_pam
-$ xtrlock_pam -p system-local-login -b bg
+$ xtrlock-pam
+$ xtrlock-pam -p system-local-login -b bg
 ```
 
 
