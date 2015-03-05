@@ -3,6 +3,11 @@
 def init():
     # standart autoconf options
     opt_group_new('autoconf', 'Standart autoconf options')
+    opt_new("build", group = 'autoconf',
+        help = "configure for building on BUILD")
+    opt_new("host", group = 'autoconf',
+        help = "cross-compile to build programs to run on HOST")
+    
     opt_new("prefix", group = 'autoconf',
         help = "install architecture-independent files", metavar='DIR',
         default = lambda : '/usr')
