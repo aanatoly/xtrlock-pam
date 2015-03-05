@@ -37,6 +37,16 @@ $ xtrlock-pam
 $ xtrlock-pam -p system-local-login -b bg
 ```
 
+## Installation
 
-### More
+```bash
+./configure
+make
+# system install - as root
+make install
+# personal install - as user
+cp src/xtrlock-pam ~/bin
+```
+
+## More
 Project page http://aanatoly.github.io/xtrlock-pam
