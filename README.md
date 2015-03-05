@@ -17,7 +17,7 @@
      window has one.
      
 ## Usage
-Run **xtrlock_pam** to lock, and type your password to unlock.
+Run **xtrlock-pam** to lock, and type your password to unlock.
 
 
 ```text
