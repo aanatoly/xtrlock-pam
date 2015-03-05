@@ -60,7 +60,7 @@ Window root;
 int screen;
 Colormap cmap;
 
-int bg_action = MBLANK;
+int bg_action = MBG;
 char *pam_module = "system-local-login";
 
 int auth_pam(char *user, char *password, char *module);
@@ -331,11 +331,11 @@ help()
 {
     printf("%s %s - PAM based X11 screen locker\n",
         PROJECT_NAME, PROJECT_VERSION);
-    printf("Usage: xtrlock [options...]\n");
+    printf("Usage: %s [options...]\n", PROJECT_NAME);
     printf("Options:\n");
     printf(" -h      This help message\n");
     printf(" -p MOD  PAM module, default is system-local-login\n");
-    printf(" -b BG   background action, none, blank or bg, default is blank\n");
+    printf(" -b BG   background action, none, blank or bg, default is bg\n");
 }
 
 int main(int argc, char *argv[])

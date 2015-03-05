@@ -1,6 +1,9 @@
 # xtrlock-pam
 
-**xtrlock** is PAM based X11 screen locker that hides all windows
+**xtrlock-pam** is PAM based X11 screen locker that hides desktop content.
+
+![normal desktop](http://aanatoly.github.io/xtrlock-pam/images/normal-th.png "Normal desktop")
+![locked desktop](http://aanatoly.github.io/xtrlock-pam/images/locked-th.png "Locked desktop")
 
 ## Features 
 
@@ -14,23 +17,26 @@
      window has one.
      
 ## Usage
-Run **xtrlock** to lock, and type your password to unlock.
+Run **xtrlock_pam** to lock, and type your password to unlock.
 
-Default behaviour
-```bash
-xtrlock_pam
-xtrlock_pam -p system-local-login -b blank
+
+```text
+$ xtrlock_pam -h
+xtrlock-pam 3.3 - PAM based X11 screen locker
+Usage: xtrlock [options...]
+Options:
+ -h      This help message
+ -p MOD  PAM module, default is 'system-local-login'
+ -b BG   background action, none, blank or bg, default is bg
+
 ```
 
-Another run
-```bash
-xtrlock_pam -p login -b none
+Default is
+```
+$ xtrlock_pam
+$ xtrlock_pam -p system-local-login -b bg
 ```
 
-Try this!
-```bash
-xtrlock_pam -b bg
-```
 
 ### More
 Project page http://aanatoly.github.io/xtrlock-pam
