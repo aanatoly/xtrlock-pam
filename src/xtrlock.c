@@ -35,6 +35,9 @@
 #include "lock.bitmap"
 #include "mask.bitmap"
 
+//#define DEBUGPRN
+#include "dbg.h"
+
 #define TIMEOUTPERATTEMPT 30000
 #define MAXGOODWILL  (TIMEOUTPERATTEMPT*5)
 #define INITIALGOODWILL MAXGOODWILL
@@ -71,6 +74,15 @@ int passwordok(char *password)
     do { fprintf(stderr, fmt, ## args); } while(0)
 
 
+void
+handle_error(Display * d, XErrorEvent * ev)
+{
+    char buf[256];
+
+    XGetErrorText(display, ev->error_code, buf, 256);
+    DBG("X error: %s\n", buf);
+}
+
 Window
 create_window(unsigned long values, XSetWindowAttributes *attrib)
 {
@@ -82,6 +94,71 @@ create_window(unsigned long values, XSetWindowAttributes *attrib)
         values, attrib);
 }
 
+/*
+ * Obtains pixmap from a root window property.
+ * @aname: name of the root's property, eg _XROOTPMAP_ID
+ * It does these checks
+ *  - property exists
+ *  - its value is a pixmap
+ *  - that pixmap still exists
+ * Return: pixmap on success, None otherwise
+ */
+static Pixmap
+get_prop_pixmap(char *aname)
+{
+    int rc, rf, idummy;
+    unsigned long nitems, ldummy;
+    unsigned char *ret;
+    unsigned int uidummy;
+    Atom pa = XInternAtom(display, aname, True);
+    Atom rpa;
+    Pixmap pix = None;
+    Window rw = None;
+    
+    DBG("atom: name %s, id %lu\n", aname, pa);
+    if (pa == None)
+        return None;
+    rc = XGetWindowProperty(display, root,
+        pa, 0, 1, False, XA_PIXMAP,
+        &rpa, &rf, &nitems, &ldummy, &ret);
+    if (rc != Success) {
+        DBG("can't get '%s' prop\n", aname);
+        return None;
+    }
+    DBG("nitems %lu, format %d, type %lu, pixmap type %lu\n", nitems, rf,
+        rpa, XA_PIXMAP);
+    if (nitems == 1 && rf == 32 && rpa == XA_PIXMAP) {
+        pix = *((Pixmap *) ret); 
+    }
+    XFree(ret);
+    DBG("pix 0x%lx\n", pix);
+    if (pix == None)
+        return None;
+    
+    rc = XGetGeometry(display, pix, &rw, &idummy, &idummy,
+        &uidummy, &uidummy, &uidummy, &uidummy);
+    DBG("XGetGeometry %d; rwin %lx\n", rc, rw);
+    if (rw != None)
+        return pix;
+
+    return None;
+}
+
+
+static Pixmap
+get_bg_pixmap()
+{
+    Pixmap pix = None;
+
+    pix = get_prop_pixmap("_XROOTPMAP_ID");
+    if (pix != None)
+        return pix;
+    ERR("root['_XROOTPMAP_ID'] is not valid pixmap\n");
+    
+    return None;
+}
+
+
 /* If window creation fails, Xlib will exit an application */
 Window
 create_window_full(int mode)
@@ -89,7 +166,8 @@ create_window_full(int mode)
     XSetWindowAttributes attrib;
     unsigned long values = 0;
     Window window;
-
+    Pixmap pix = None;
+    
     values = CWOverrideRedirect;
     attrib.override_redirect = True;
 
@@ -100,8 +178,16 @@ create_window_full(int mode)
         return window;
     }
     if (mode == MBG) {
+        pix = get_bg_pixmap();
+        if (pix == None) {
+            ERR("Can't get bg pixmap. Falling back to 'blank' mode'\n");
+            mode = MBLANK;
+        }
+    }
+
+    if (mode == MBG) {
         values |= CWBackPixmap;
-        attrib.background_pixmap = ParentRelative;
+        attrib.background_pixmap = pix;
         window = create_window(values, &attrib);
     } else if (mode == MBLANK) {
         values |= CWBackPixel;
@@ -109,6 +195,7 @@ create_window_full(int mode)
         window = create_window(values, &attrib);
     } else
         exit(1);
+
     XClearWindow(display, window);
     XSync(display, False);
     return window;
@@ -157,6 +244,7 @@ lock(int mode)
         err("cannot open display\n");
         exit(1);
     }
+    XSetErrorHandler((XErrorHandler) handle_error);
     screen = DefaultScreen(display);
     root = DefaultRootWindow(display);
     cmap = DefaultColormap(display, screen);
