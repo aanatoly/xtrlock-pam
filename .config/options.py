@@ -63,6 +63,10 @@ def init():
 # config.h.
 def resolve():
     opt_new_from_pkg('x11', 'x11')
+    if not os.path.isfile('/usr/include/security/pam_appl.h'):
+        print("PAM development package is not installed")
+        print("On ubuntu it's 'libpam0g-dev'")
+        exit(1)
 
     #opt_new('cflags_extra', default='-I$(TOPDIR)/include')
     
