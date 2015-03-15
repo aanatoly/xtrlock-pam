@@ -3,9 +3,9 @@
 **xtrlock-pam** is PAM based X11 screen locker that hides desktop content.
 
 <a href="http://aanatoly.github.io/xtrlock-pam/images/normal.png">
-<img src="http://aanatoly.github.io/xtrlock-pam/images/normal-th.png">/<a>
+<img src="http://aanatoly.github.io/xtrlock-pam/images/normal-th.png"/></a>
 <a href="http://aanatoly.github.io/xtrlock-pam/images/locked.png">
-<img src="http://aanatoly.github.io/xtrlock-pam/images/locked-th.png">/<a>
+<img src="http://aanatoly.github.io/xtrlock-pam/images/locked-th.png"></a>
 
 ## Features 
 
